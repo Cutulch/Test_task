@@ -57,10 +57,12 @@ export function validateAccountDraft(draft: AccountDraft): AccountDraftErrors {
     errors.login = 'Максимум 100 символов'
   }
 
-  if (draft.password.length > 100) {
-    errors.password = 'Максимум 100 символов'
-  } else if (draft.type === 'LOCAL' && draft.password.trim().length === 0) {
-    errors.password = 'Обязательное поле'
+  if (draft.type === 'LOCAL') {
+    if (draft.password.length > 100) {
+      errors.password = 'Максимум 100 символов'
+    } else if (draft.password.trim().length === 0) {
+      errors.password = 'Обязательное поле'
+    }
   }
 
   return errors
