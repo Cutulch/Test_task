@@ -8,6 +8,7 @@ import {
   draftToAccount,
   validateAccountDraft,
 } from './features/accounts/account'
+import AccountRow from './features/accounts/components/AccountRow.vue'
 
 const store = useAccountsStore()
 
@@ -24,6 +25,12 @@ const onRemoveAccount = (id: string) => {
   drafts.value = drafts.value.filter((d) => d.id !== id)
   delete errorsById[id]
   store.remove(id)
+}
+
+const onUpdateDraft = (index: number, next: AccountDraft) => {
+  // Индекс приходит из v-for, но guard нужен для типобезопасности.
+  if (!drafts.value[index]) return
+  drafts.value[index] = next
 }
 
 const validateAndPersist = (draft: AccountDraft) => {
@@ -62,68 +69,16 @@ const validateAndPersist = (draft: AccountDraft) => {
       />
 
       <div v-else class="accounts__list">
-        <el-card v-for="(draft, index) in drafts" :key="draft.id" class="accounts__item">
-          <template #header>
-            <div class="account__header">
-              <div class="account__title">Учетная запись {{ index + 1 }}</div>
-              <el-button type="danger" plain @click="onRemoveAccount(draft.id)">Удалить</el-button>
-            </div>
-          </template>
-
-          <el-form label-position="top" :show-message="false">
-            <el-row :gutter="12">
-              <el-col :xs="24" :md="8">
-                <el-form-item label="Метка" :error="errorsById[draft.id]?.labelInput">
-                  <el-input
-                    v-model="draft.labelInput"
-                    maxlength="50"
-                    placeholder="Например: dev;admin"
-                    clearable
-                    @blur="() => validateAndPersist(draft)"
-                  />
-                </el-form-item>
-              </el-col>
-
-              <el-col :xs="24" :md="8">
-                <el-form-item label="Тип записи" :error="errorsById[draft.id]?.type">
-                  <el-select
-                    v-model="draft.type"
-                    placeholder="Выберите"
-                    style="width: 100%"
-                    @change="() => validateAndPersist(draft)"
-                  >
-                    <el-option label="LDAP" value="LDAP" />
-                    <el-option label="Локальная" value="LOCAL" />
-                  </el-select>
-                </el-form-item>
-              </el-col>
-
-              <el-col :xs="24" :md="8">
-                <el-form-item label="Логин" :error="errorsById[draft.id]?.login">
-                  <el-input
-                    v-model="draft.login"
-                    maxlength="100"
-                    clearable
-                    @blur="() => validateAndPersist(draft)"
-                  />
-                </el-form-item>
-              </el-col>
-
-              <el-col v-if="draft.type === 'LOCAL'" :xs="24" :md="8">
-                <el-form-item label="Пароль" :error="errorsById[draft.id]?.password">
-                  <el-input
-                    v-model="draft.password"
-                    type="password"
-                    show-password
-                    maxlength="100"
-                    clearable
-                    @blur="() => validateAndPersist(draft)"
-                  />
-                </el-form-item>
-              </el-col>
-            </el-row>
-          </el-form>
-        </el-card>
+        <AccountRow
+          v-for="(draft, index) in drafts"
+          :key="draft.id"
+          :model-value="draft"
+          :index="index"
+          :errors="errorsById[draft.id]"
+          @update:model-value="(next) => onUpdateDraft(index, next)"
+          @remove="onRemoveAccount"
+          @validate="validateAndPersist"
+        />
       </div>
     </section>
   </main>
@@ -159,21 +114,5 @@ const validateAndPersist = (draft: AccountDraft) => {
   display: flex;
   flex-direction: column;
   gap: 12px;
-}
-
-.accounts__item :deep(.el-card__header) {
-  padding: 12px 16px;
-}
-
-.account__header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.account__title {
-  font-weight: 700;
-  color: #111827;
 }
 </style>
