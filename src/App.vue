@@ -1,20 +1,41 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { reactive, ref } from 'vue'
 import { useAccountsStore } from './stores/accounts'
-import type { AccountDraft } from './features/accounts/account'
-import { accountToDraft, createEmptyAccountDraft } from './features/accounts/account'
+import type { AccountDraft, AccountDraftErrors } from './features/accounts/account'
+import {
+  accountToDraft,
+  createEmptyAccountDraft,
+  draftToAccount,
+  validateAccountDraft,
+} from './features/accounts/account'
 
 const store = useAccountsStore()
 
 const drafts = ref<AccountDraft[]>(store.accounts.map(accountToDraft))
+const errorsById = reactive<Record<string, AccountDraftErrors>>({})
 
 const onAddAccount = () => {
-  drafts.value.push(createEmptyAccountDraft())
+  const draft = createEmptyAccountDraft()
+  drafts.value.push(draft)
+  errorsById[draft.id] = {}
 }
 
 const onRemoveAccount = (id: string) => {
   drafts.value = drafts.value.filter((d) => d.id !== id)
+  delete errorsById[id]
   store.remove(id)
+}
+
+const validateAndPersist = (draft: AccountDraft) => {
+  const errors = validateAccountDraft(draft)
+  errorsById[draft.id] = errors
+
+  if (Object.keys(errors).length > 0) return
+
+  const account = draftToAccount(draft)
+  if (!account) return
+
+  store.upsert(account)
 }
 </script>
 
@@ -49,22 +70,28 @@ const onRemoveAccount = (id: string) => {
             </div>
           </template>
 
-          <el-form label-position="top">
+          <el-form label-position="top" :show-message="false">
             <el-row :gutter="12">
               <el-col :xs="24" :md="8">
-                <el-form-item label="Метка">
+                <el-form-item label="Метка" :error="errorsById[draft.id]?.labelInput">
                   <el-input
                     v-model="draft.labelInput"
                     maxlength="50"
                     placeholder="Например: dev;admin"
                     clearable
+                    @blur="() => validateAndPersist(draft)"
                   />
                 </el-form-item>
               </el-col>
 
               <el-col :xs="24" :md="8">
-                <el-form-item label="Тип записи">
-                  <el-select v-model="draft.type" placeholder="Выберите" style="width: 100%">
+                <el-form-item label="Тип записи" :error="errorsById[draft.id]?.type">
+                  <el-select
+                    v-model="draft.type"
+                    placeholder="Выберите"
+                    style="width: 100%"
+                    @change="() => validateAndPersist(draft)"
+                  >
                     <el-option label="LDAP" value="LDAP" />
                     <el-option label="Локальная" value="LOCAL" />
                   </el-select>
@@ -72,19 +99,25 @@ const onRemoveAccount = (id: string) => {
               </el-col>
 
               <el-col :xs="24" :md="8">
-                <el-form-item label="Логин">
-                  <el-input v-model="draft.login" maxlength="100" clearable />
+                <el-form-item label="Логин" :error="errorsById[draft.id]?.login">
+                  <el-input
+                    v-model="draft.login"
+                    maxlength="100"
+                    clearable
+                    @blur="() => validateAndPersist(draft)"
+                  />
                 </el-form-item>
               </el-col>
 
               <el-col v-if="draft.type === 'LOCAL'" :xs="24" :md="8">
-                <el-form-item label="Пароль">
+                <el-form-item label="Пароль" :error="errorsById[draft.id]?.password">
                   <el-input
                     v-model="draft.password"
                     type="password"
                     show-password
                     maxlength="100"
                     clearable
+                    @blur="() => validateAndPersist(draft)"
                   />
                 </el-form-item>
               </el-col>
