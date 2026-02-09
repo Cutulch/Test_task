@@ -78,3 +78,31 @@ export function draftToAccount(draft: AccountDraft): Account | null {
   }
 }
 
+export function accountToDraft(account: Account): AccountDraft {
+  return {
+    id: account.id,
+    labelInput: account.labels.map((l) => l.text).join(';'),
+    type: account.type,
+    login: account.login,
+    password: account.password ?? '',
+  }
+}
+
+export function createEmptyAccountDraft(): AccountDraft {
+  return {
+    id: generateId(),
+    labelInput: '',
+    type: '',
+    login: '',
+    password: '',
+  }
+}
+
+function generateId(): string {
+  // randomUUID есть в современных браузерах. Фоллбек нужен для окружений без него.
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID()
+  }
+
+  return `${Date.now()}-${Math.random().toString(16).slice(2)}`
+}
