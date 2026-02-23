@@ -1,6 +1,12 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import type { AccountDraft, AccountDraftErrors } from '../account'
+import {
+  ACCOUNT_FIELD_LIMITS,
+  ACCOUNT_TYPE,
+  ACCOUNT_TYPE_OPTIONS,
+  type AccountDraft,
+  type AccountDraftErrors,
+} from '../account'
 
 const props = defineProps<{
   modelValue: AccountDraft
@@ -44,6 +50,8 @@ const password = computed({
   },
 })
 
+const isLocalType = computed(() => type.value === ACCOUNT_TYPE.LOCAL)
+
 const onValidate = () => {
   emit('validate', props.modelValue)
 }
@@ -68,7 +76,7 @@ const onRemove = () => {
           <el-form-item label="Метка" :error="fieldErrors.labelInput">
             <el-input
               v-model="labelInput"
-              maxlength="50"
+              :maxlength="ACCOUNT_FIELD_LIMITS.LABEL"
               placeholder="Например: dev;admin"
               clearable
               @blur="onValidate"
@@ -84,25 +92,34 @@ const onRemove = () => {
               style="width: 100%"
               @change="onValidate"
             >
-              <el-option label="LDAP" value="LDAP" />
-              <el-option label="Локальная" value="LOCAL" />
+              <el-option
+                v-for="option in ACCOUNT_TYPE_OPTIONS"
+                :key="option.value"
+                :label="option.label"
+                :value="option.value"
+              />
             </el-select>
           </el-form-item>
         </el-col>
 
         <el-col :xs="24" :md="8">
           <el-form-item label="Логин" :error="fieldErrors.login">
-            <el-input v-model="login" maxlength="100" clearable @blur="onValidate" />
+            <el-input
+              v-model="login"
+              :maxlength="ACCOUNT_FIELD_LIMITS.LOGIN"
+              clearable
+              @blur="onValidate"
+            />
           </el-form-item>
         </el-col>
 
-        <el-col v-if="type === 'LOCAL'" :xs="24" :md="8">
+        <el-col v-if="isLocalType" :xs="24" :md="8">
           <el-form-item label="Пароль" :error="fieldErrors.password">
             <el-input
               v-model="password"
               type="password"
               show-password
-              maxlength="100"
+              :maxlength="ACCOUNT_FIELD_LIMITS.PASSWORD"
               clearable
               @blur="onValidate"
             />
@@ -130,4 +147,3 @@ const onRemove = () => {
   color: #111827;
 }
 </style>
-
